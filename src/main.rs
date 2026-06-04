@@ -1,21 +1,51 @@
-use serde::deserialize;
-
-#[derive(Deserialize)]
-struct WeatherReponse {
-    current_weather: WeatherData,
-}
+use reqwest;
+use serde::Deserialize;
+use tokio;
 
 #[derive(Deserialize)]
 struct WeatherData {
-    main: {
-        temp: f64,
-        feel_like: f64,
-        temp_min: f64,
-        temp_max: f64
-    },
-    wind: {
-        speed: f64
-    ,
+    main: Main,
+    weather: Vec<Weather>,
+}
+#[derive(Deserialize)]
+struct Main {
+    temp: f64,
+}
+#[derive(Deserialize)]
+struct Weather {
+    description: String,
 }
 
-fn main() {}
+async fn fetch_weather(api_key: &str, city: String) -> Result<(), reqwest::Error> {
+    let url = format!(
+        "https://api.openweathermap.org/data/2.5/weather?q={}&units=metric&appid={}",
+        city.trim(),
+        api_key
+    );
+
+    let response = reqwest::get(&url).await?;
+
+    if response.status().is_success() {
+        let weather_data: WeatherData = response.json().await?;
+        let temperature = weather_data.main.temp;
+        let description = &weather_data.weather[0].description;
+        println!("Weather in {} is {}C, {}", city, temperature, description);
+    } else {
+        println!("Error: {}", response.status());
+    }
+
+    Ok(())
+}
+
+#[tokio::main]
+async fn main() {
+    let api_key = "482cec6e02c174b6356e6fdbd395ab88";
+
+    let mut city = String::new();
+    println!("Enter a city:");
+    std::io::stdin()
+        .read_line(&mut city)
+        .expect("Faile to read the city name.");
+    tokio::spawn(fetch_weather(api_key, city));
+    tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+}
