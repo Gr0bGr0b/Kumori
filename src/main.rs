@@ -1,5 +1,7 @@
+use dotenvy::dotenv;
 use reqwest;
 use serde::Deserialize;
+use std::env;
 use tokio;
 
 #[derive(Deserialize)]
@@ -16,7 +18,7 @@ struct Weather {
     description: String,
 }
 
-async fn fetch_weather(api_key: &str, city: String) -> Result<(), reqwest::Error> {
+async fn fetch_weather(api_key: String, city: String) -> Result<(), reqwest::Error> {
     let url = format!(
         "https://api.openweathermap.org/data/2.5/weather?q={}&units=metric&appid={}",
         city.trim(),
@@ -39,7 +41,9 @@ async fn fetch_weather(api_key: &str, city: String) -> Result<(), reqwest::Error
 
 #[tokio::main]
 async fn main() {
-    let api_key = "482cec6e02c174b6356e6fdbd395ab88";
+    dotenv().ok();
+
+    let api_key = env::var("API_KEY").expect("Variable not defined");
 
     let mut city = String::new();
     println!("Enter a city:");
